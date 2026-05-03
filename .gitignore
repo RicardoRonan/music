@@ -24,3 +24,11 @@ coverage/
 # Misc
 .DS_Store
 *.log
+
+# Flutter generated
+.flutter-plugins-dependencies
+.flutter-plugins
+
+# Android
+**/android/.gradle/
+**/android/app/flutter_build/
