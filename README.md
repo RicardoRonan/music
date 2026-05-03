@@ -1,6 +1,6 @@
-# Resonate - Flutter Music Player
+# Music - Flutter Music Player
 
-Resonate is a polished Flutter music player MVP built on `flutter_starter`.
+Music is a polished Flutter music player MVP built on `flutter_starter`.
 It uses `just_audio` for playback, `flutter_riverpod` for state management, and `go_router` for navigation.
 
 ## Features
@@ -10,6 +10,13 @@ It uses `just_audio` for playback, `flutter_riverpod` for state management, and 
 - Persistent likes, recently played items, and search history via `shared_preferences`.
 - Artwork loading with fallback assets.
 - Modular feature-first structure ready for real API integration.
+
+## What it does not do yet
+
+- No real streaming service or paid music catalog integration (mock data only).
+- No user accounts, cloud sync, or multi-device library.
+- No offline download manager (beyond whatever local files you wire in later).
+- No lyrics, social sharing, or advanced audio features like crossfade (see roadmap).
 
 ## Tech Stack
 
