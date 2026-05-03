@@ -1,48 +1,86 @@
-# Resonate — Flutter music player starter
+# Resonate - Flutter Music Player
 
-Polished MVP music player built on the existing `flutter_starter` project: mock catalog, real playback via **just_audio** (bundled demo MP3 per track), **Riverpod** for state, **go_router** for navigation, and **shared_preferences** for likes / recent searches / recently played.
+Resonate is a polished Flutter music player MVP built on `flutter_starter`.
+It uses `just_audio` for playback, `flutter_riverpod` for state management, and `go_router` for navigation.
 
-## Setup
+## Features
 
-1. Install [Flutter](https://docs.flutter.dev/get-started/install) (stable channel) and run `flutter doctor` until your target platforms are ready.
-2. From this directory:
+- Browse a mock catalog and play tracks with a queue.
+- Mini player plus full now playing experience.
+- Persistent likes, recently played items, and search history via `shared_preferences`.
+- Artwork loading with fallback assets.
+- Modular feature-first structure ready for real API integration.
 
-   ```bash
-   flutter pub get
-   flutter run
-   ```
+## Tech Stack
 
-3. Pick a device (e.g. `flutter run -d chrome` or a physical phone). Android requires the `INTERNET` permission for artwork URLs (already declared).
+- Flutter (Dart 3)
+- Riverpod
+- go_router
+- just_audio + audio_service
+- shared_preferences
 
-## Architecture (short)
+## Getting Started
 
-| Layer | Role |
-|--------|------|
-| `lib/app/` | `MaterialApp.router`, theme, `GoRouter` shell |
-| `lib/core/` | Spacing, small widgets, formatting, responsive helpers |
-| `lib/features/*/` | Screens + feature widgets; **no** direct `AudioPlayer` usage in UI |
-| `lib/features/player/` | Models, `AudioPlayerService` (just_audio), `PlayerNotifier`, preferences |
-| `lib/mock/` | `MockMusicData` — replace with API / local library repository |
+1. Install Flutter and verify setup:
 
-**Why Riverpod** (see `pubspec.yaml`): compile-safe providers, easy overrides in tests, and room to grow per feature without `InheritedWidget` sprawl.
+```bash
+flutter doctor
+```
 
-**Playback flow**: UI calls `ref.read(playerNotifierProvider.notifier).playQueue(...)` → `AudioPlayerService` builds `ConcatenatingAudioSource` from each song’s `assetPath` or `streamingUrl` → streams update `PlayerState` for mini player, Now Playing, and queue.
+2. Install dependencies:
 
-## Where to extend next
+```bash
+flutter pub get
+```
 
-- **Real streaming API**: implement a `MusicCatalog` subclass (or new repository) that returns `Song` rows with `streamingUrl` set; keep `AudioPlayerService` as the single playback entry point.
-- **Offline downloads**: add download jobs + local `File` URIs; gate `AudioSource.file` in the service.
-- **User authentication**: wrap catalog and prefs with an account scope; sync likes/history from backend.
-- **Smart recommendations / AI playlists**: feed home “For you” from a recommender service instead of `genreTag` filters.
-- **Crossfade / gapless / lyrics / social sharing**: see TODO comments in `lib/features/player/services/audio_player_service.dart`, `queue_screen.dart`, and `settings_screen.dart`.
+3. Run the app:
 
-## Assets
+```bash
+flutter run
+```
 
-- `assets/audio/sample.mp3` — short demo clip (all mock songs point at it for a reliable MVP).
-- `assets/images/artwork_placeholder.svg` — fallback when artwork fails or is missing.
+Optional:
 
-## Tests
+- Web: `flutter run -d chrome`
+- Android device: `flutter run -d <device-id>`
+
+## Project Structure
+
+- `lib/app/`: app shell, router, and global theme setup.
+- `lib/core/`: shared UI helpers and utilities.
+- `lib/features/`: feature modules (home, search, player, settings, etc.).
+- `lib/features/player/`: playback models, service layer, and player state notifier.
+- `lib/mock/`: mock data sources (replace with real backend/repository).
+- `assets/`: images and demo audio assets.
+
+## Testing
+
+Run tests with:
 
 ```bash
 flutter test
 ```
+
+## Android Release Prep (Beta Ready)
+
+Before uploading to Google Play (internal/closed testing), complete:
+
+1. Set a permanent `applicationId` in `android/app/build.gradle.kts` (replace `com.example.flutter_starter`).
+2. Configure release signing with your upload keystore.
+3. Bump app version in `pubspec.yaml` (`version: x.y.z+buildNumber`).
+4. Build release app bundle:
+
+```bash
+flutter build appbundle --release
+```
+
+Bundle output:
+
+- `build/app/outputs/bundle/release/app-release.aab`
+
+## Roadmap
+
+- Replace mock catalog with a real streaming/music API.
+- Add offline downloads and playback from local file URIs.
+- Add authentication and cloud sync for likes/history.
+- Improve recommendations and playlist intelligence.
