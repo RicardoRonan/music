@@ -123,21 +123,22 @@ class SettingsScreen extends ConsumerWidget {
               }
             },
           ),
-          if (!kIsWeb) ...[
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'On this device',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            kIsWeb ? 'Your library' : 'On this device',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Files you import are grouped by folder as albums.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            kIsWeb
+                ? 'Choose audio files from your computer. Tracks are stored in this browser for playback.'
+                : 'Files you import are grouped by folder as albums.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
+          ),
             if (local.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.sm),
               Text(
@@ -179,8 +180,12 @@ class SettingsScreen extends ConsumerWidget {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.upload_file_rounded),
-              title: const Text('Import audio files'),
-              subtitle: const Text('Pick files from your device storage.'),
+              title: Text(kIsWeb ? 'Choose music files' : 'Import audio files'),
+              subtitle: Text(
+                kIsWeb
+                    ? 'Pick MP3 and other audio files from your computer.'
+                    : 'Pick files from your device storage.',
+              ),
               onTap: () async {
                 final n = await ref
                     .read(localLibraryProvider.notifier)
@@ -197,47 +202,48 @@ class SettingsScreen extends ConsumerWidget {
                 );
               },
             ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.manage_search_rounded),
-              title: const Text('Scan device for music'),
-              subtitle: const Text(
-                'Find audio already on your device (up to 10,000 files per scan).',
+            if (!kIsWeb)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.manage_search_rounded),
+                title: const Text('Scan device for music'),
+                subtitle: const Text(
+                  'Find audio already on your device (up to 10,000 files per scan).',
+                ),
+                onTap: () async {
+                  final n = await runDeviceMusicScanWithProgressDialog(
+                    context,
+                    ref,
+                  );
+                  if (!context.mounted) return;
+                  final messenger = ScaffoldMessenger.of(context);
+                  if (n == -1) {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Could not read storage. Allow audio access in system settings, then try again.',
+                        ),
+                      ),
+                    );
+                  } else if (n == 0) {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'No new audio files found (up to 10,000 files per scan).',
+                        ),
+                      ),
+                    );
+                  } else {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Added $n track${n == 1 ? '' : 's'} from device scan.',
+                        ),
+                      ),
+                    );
+                  }
+                },
               ),
-              onTap: () async {
-                final n = await runDeviceMusicScanWithProgressDialog(
-                  context,
-                  ref,
-                );
-                if (!context.mounted) return;
-                final messenger = ScaffoldMessenger.of(context);
-                if (n == -1) {
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Could not read storage. Allow audio access in system settings, then try again.',
-                      ),
-                    ),
-                  );
-                } else if (n == 0) {
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'No new audio files found (up to 10,000 files per scan).',
-                      ),
-                    ),
-                  );
-                } else {
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Added $n track${n == 1 ? '' : 's'} from device scan.',
-                      ),
-                    ),
-                  );
-                }
-              },
-            ),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.delete_sweep_outlined),
@@ -278,16 +284,6 @@ class SettingsScreen extends ConsumerWidget {
                 }
               },
             ),
-          ] else ...[
-            const SizedBox(height: AppSpacing.lg),
-            ListTile(
-              leading: const Icon(Icons.phone_android_rounded),
-              title: const Text('On this device'),
-              subtitle: const Text(
-                'Import and device scan are available on Android, iOS, and desktop — not in the web build.',
-              ),
-            ),
-          ],
           ListTile(
             leading: const Icon(Icons.history_rounded),
             title: const Text('Clear recently played'),

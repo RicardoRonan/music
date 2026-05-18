@@ -23,30 +23,77 @@ Future<bool> ensureDeviceScanPermissions() async {
   return storageReq.isGranted;
 }
 
+const _skipDirNames = {
+  'node_modules',
+  '.git',
+  '.dart_tool',
+  'Windows',
+  'Program Files',
+  'Program Files (x86)',
+  'PerfLogs',
+  r'$Recycle.Bin',
+  'System Volume Information',
+  'Library',
+  'Caches',
+  '.gradle',
+  'Android',
+  'DerivedData',
+  'AppData',
+  'Local',
+  'Roaming',
+  'Temp',
+  'tmp',
+};
+
 /// Walks common device roots and returns absolute file paths for audio files.
 Future<List<String>> collectDeviceAudioPaths({
   void Function(int filesFound)? onProgress,
   int maxFiles = 10000,
 }) async {
   final roots = await _scanRoots();
-  if (roots.isEmpty) return [];
+  return _collectFromRoots(roots, onProgress: onProgress, maxFiles: maxFiles);
+}
 
-  const skipDirNames = {
-    'node_modules',
-    '.git',
-    '.dart_tool',
-    'Windows',
-    'Program Files',
-    'Program Files (x86)',
-    'PerfLogs',
-    r'$Recycle.Bin',
-    'System Volume Information',
-    'Library',
-    'Caches',
-    '.gradle',
-    'Android',
-    'DerivedData',
-  };
+/// Scans the Windows user Music folder (and common OneDrive variants).
+Future<List<String>> collectWindowsMusicFolderPaths({
+  void Function(int filesFound)? onProgress,
+  int maxFiles = 10000,
+}) async {
+  final roots = await _windowsMusicScanRoots();
+  return _collectFromRoots(roots, onProgress: onProgress, maxFiles: maxFiles);
+}
+
+/// Scans a single folder tree chosen by the user (e.g. custom Music path).
+Future<List<String>> collectAudioPathsInFolder(
+  String folderPath, {
+  void Function(int filesFound)? onProgress,
+  int maxFiles = 10000,
+  int maxDepth = 80,
+}) async {
+  final norm = p.normalize(folderPath.trim());
+  if (norm.isEmpty || !await Directory(norm).exists()) return [];
+  return _collectFromRoots(
+    [_ScanRoot(norm, maxDepth)],
+    onProgress: onProgress,
+    maxFiles: maxFiles,
+  );
+}
+
+/// Existing Music folder paths on Windows, for UI labels and folder picker defaults.
+Future<List<String>> existingWindowsMusicFolderPaths() async {
+  final out = <String>[];
+  for (final root in await _windowsMusicScanRoots()) {
+    out.add(root.path);
+  }
+  return out;
+}
+
+Future<List<String>> _collectFromRoots(
+  List<_ScanRoot> roots, {
+  void Function(int filesFound)? onProgress,
+  int maxFiles = 10000,
+}) async {
+  if (roots.isEmpty) return [];
 
   final found = <String>{};
   var yieldCounter = 0;
@@ -76,7 +123,7 @@ Future<List<String>> collectDeviceAudioPaths({
         } else if (e is Directory) {
           final name = p.basename(e.path);
           if (name.startsWith('.')) continue;
-          if (skipDirNames.contains(name)) continue;
+          if (_skipDirNames.contains(name)) continue;
           stack.add(_ScanFrame(e, frame.depth + 1));
         }
       }
@@ -103,6 +150,37 @@ class _ScanFrame {
   _ScanFrame(this.directory, this.depth);
   final Directory directory;
   final int depth;
+}
+
+Future<List<_ScanRoot>> _windowsMusicScanRoots() async {
+  final roots = <_ScanRoot>[];
+  final seen = <String>{};
+
+  Future<void> addRoot(String path, int depth) async {
+    final norm = p.normalize(path);
+    if (seen.contains(norm)) return;
+    if (!await Directory(norm).exists()) return;
+    seen.add(norm);
+    roots.add(_ScanRoot(norm, depth));
+  }
+
+  final home = Platform.environment['USERPROFILE'];
+  if (home == null) return roots;
+
+  await addRoot(p.join(home, 'Music'), 80);
+  await addRoot(p.join(home, 'OneDrive', 'Music'), 80);
+  await addRoot(p.join(home, 'OneDrive', 'Documents', 'Music'), 80);
+  await addRoot(p.join(home, 'My Music'), 80);
+
+  try {
+    final dl = await getDownloadsDirectory();
+    if (dl != null) {
+      final musicInDownloads = p.join(dl.path, 'Music');
+      await addRoot(musicInDownloads, 80);
+    }
+  } catch (_) {}
+
+  return roots;
 }
 
 Future<List<_ScanRoot>> _scanRoots() async {
@@ -140,26 +218,7 @@ Future<List<_ScanRoot>> _scanRoots() async {
   }
 
   if (Platform.isWindows) {
-    final roots = <_ScanRoot>[];
-    final home = Platform.environment['USERPROFILE'];
-    if (home != null && await Directory(home).exists()) {
-      roots.add(_ScanRoot(home, 60));
-    }
-    try {
-      final dl = await getDownloadsDirectory();
-      if (dl != null &&
-          await Directory(dl.path).exists() &&
-          (home == null || !p.isWithin(home, dl.path))) {
-        roots.add(_ScanRoot(dl.path, 60));
-      }
-    } catch (_) {}
-    for (var code = 65; code <= 90; code++) {
-      final letter = String.fromCharCode(code);
-      final drive = '$letter:\\';
-      if (!await Directory(drive).exists()) continue;
-      roots.add(_ScanRoot(drive, 10));
-    }
-    return roots;
+    return _windowsMusicScanRoots();
   }
 
   if (Platform.isLinux) {

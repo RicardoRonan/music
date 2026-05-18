@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -47,9 +48,13 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
               Text('Welcome to Music', style: theme.textTheme.headlineMedium),
               const SizedBox(height: AppSpacing.md),
               Text(
-                'Music is a simple offline music player for your local MP3 and audio files. '
-                'To get started, scan your device for music or import audio files from storage '
-                '(available in Settings and the Folders tab after this step).',
+                kIsWeb
+                    ? 'Music is a simple offline music player for your local MP3 and audio files. '
+                        'To get started, choose music files from your computer '
+                        '(available in Settings and the Library tab after this step).'
+                    : 'Music is a simple offline music player for your local MP3 and audio files. '
+                        'To get started, scan your device for music or import audio files from storage '
+                        '(available in Settings and the Folders tab after this step).',
                 style: theme.textTheme.bodyLarge,
               ),
               const SizedBox(height: AppSpacing.lg),

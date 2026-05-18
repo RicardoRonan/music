@@ -14,6 +14,7 @@ class PlayerState {
     required this.shuffleEnabled,
     required this.loopMode,
     required this.processingState,
+    required this.volume,
     this.errorMessage,
   });
 
@@ -25,6 +26,7 @@ class PlayerState {
   final bool shuffleEnabled;
   final LoopMode loopMode;
   final AppProcessingState processingState;
+  final double volume;
   final String? errorMessage;
 
   Song? get currentSong {
@@ -42,6 +44,7 @@ class PlayerState {
     shuffleEnabled: false,
     loopMode: LoopMode.off,
     processingState: AppProcessingState.idle,
+    volume: 1,
   );
 
   PlayerState copyWith({
@@ -53,6 +56,7 @@ class PlayerState {
     bool? shuffleEnabled,
     LoopMode? loopMode,
     AppProcessingState? processingState,
+    double? volume,
     String? errorMessage,
     bool clearError = false,
   }) {
@@ -65,6 +69,7 @@ class PlayerState {
       shuffleEnabled: shuffleEnabled ?? this.shuffleEnabled,
       loopMode: loopMode ?? this.loopMode,
       processingState: processingState ?? this.processingState,
+      volume: volume ?? this.volume,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }

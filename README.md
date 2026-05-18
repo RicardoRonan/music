@@ -46,10 +46,44 @@ flutter pub get
 flutter run
 ```
 
+On Windows, if your user folder path contains spaces (for example `C:\Users\LENOVO THINKPAD P15\`), use the project scripts instead — plain `flutter run` can fail while building native assets with `'C:\Users\LENOVO' is not recognized...`:
+
+```bat
+run_web.bat
+```
+
+or for the Windows desktop app:
+
+```bat
+run_windows.bat
+```
+
+These map the project to drive `M:` and use `C:\pub-cache` so Dart’s build hooks receive paths without spaces. See [Windows paths with spaces](#windows-paths-with-spaces) below.
+
 Optional:
 
-- Web: `flutter run -d chrome`
+- Web: `run_web.bat` or `flutter run -d chrome`
+- Windows desktop: `run_windows.bat` or `flutter run -d windows`
 - Android device: `flutter run -d <device-id>`
+
+### Windows paths with spaces
+
+Flutter/Dart [native asset hooks](https://github.com/dart-lang/sdk/issues/56053) can break when your project or Pub cache lives under a path with spaces. Symptoms:
+
+```text
+'C:\Users\LENOVO' is not recognized as an internal or external command
+Building native assets for package:objective_c failed.
+```
+
+**Fix (recommended):** run from this repo using:
+
+| Script | Purpose |
+|--------|---------|
+| `run_web.bat` | `flutter run -d chrome` |
+| `run_windows.bat` | `flutter run -d windows` |
+| `run_flutter.bat <args>` | any other Flutter command |
+
+**Alternative:** move the project to a short path without spaces (for example `C:\dev\music`) and set `PUB_CACHE=C:\pub-cache` before `flutter pub get`.
 
 ## Project Structure
 

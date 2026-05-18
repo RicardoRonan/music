@@ -10,6 +10,7 @@ import '../../../app/theme.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/utils/duration_format.dart';
 import '../../../core/utils/track_title_sanitize.dart';
+import '../../../core/widgets/app_loader.dart';
 import '../../../core/widgets/artwork_tile.dart';
 import '../models/playback_state.dart';
 import '../models/song.dart';
@@ -166,7 +167,7 @@ class NowPlayingScreen extends ConsumerWidget {
             final bodyW = constraints.maxWidth;
             final bodyH = constraints.maxHeight;
             // Reserve vertical space for slider, timestamps, transport row, and gaps.
-            const controlStripReserve = 232.0;
+            const controlStripReserve = 280.0;
             final titleReserve = theme.textTheme.titleLarge?.fontSize != null
                 ? theme.textTheme.titleLarge!.fontSize! * 2.6 + AppSpacing.lg
                 : 72.0;
@@ -279,8 +280,9 @@ class _NowPlayingSeekBlock extends ConsumerWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
+        _NowPlayingVolumePopout(theme: theme),
         if (processingState == AppProcessingState.loading)
-          const LinearProgressIndicator()
+          const Center(child: AppLoader.small())
         else if (errorMessage != null)
           Text(
             errorMessage,
@@ -314,6 +316,113 @@ class _NowPlayingSeekBlock extends ConsumerWidget {
               Text(formatTrackDuration(effectiveDuration)),
             ],
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _NowPlayingVolumePopout extends ConsumerStatefulWidget {
+  const _NowPlayingVolumePopout({required this.theme});
+
+  final ThemeData theme;
+
+  @override
+  ConsumerState<_NowPlayingVolumePopout> createState() =>
+      _NowPlayingVolumePopoutState();
+}
+
+class _NowPlayingVolumePopoutState
+    extends ConsumerState<_NowPlayingVolumePopout> {
+  bool _expanded = false;
+
+  IconData _volumeIcon(double volume) {
+    if (volume <= 0.001) return Icons.volume_off_rounded;
+    if (volume < 0.35) return Icons.volume_mute_rounded;
+    if (volume < 0.7) return Icons.volume_down_rounded;
+    return Icons.volume_up_rounded;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final volume = ref.watch(
+      playerNotifierProvider.select((p) => p.volume),
+    );
+    final notifier = ref.read(playerNotifierProvider.notifier);
+    final theme = widget.theme;
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: Semantics(
+            button: true,
+            label: _expanded ? 'Hide volume' : 'Show volume',
+            child: IconButton(
+              tooltip: _expanded ? 'Hide volume' : 'Volume',
+              iconSize: 22,
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              onPressed: () => setState(() => _expanded = !_expanded),
+              icon: Icon(_volumeIcon(volume)),
+            ),
+          ),
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: _expanded
+              ? Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                  child: Material(
+                    elevation: 2,
+                    shadowColor: colorScheme.shadow.withValues(alpha: 0.18),
+                    color: colorScheme.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.sm,
+                        AppSpacing.xs,
+                        AppSpacing.sm,
+                        AppSpacing.xs,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _volumeIcon(volume),
+                            size: 20,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          Expanded(
+                            child: Slider(
+                              value: volume.clamp(0.0, 1.0),
+                              onChanged: (v) => notifier.setVolume(v),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 40,
+                            child: Text(
+                              '${(volume * 100).round()}%',
+                              textAlign: TextAlign.end,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(),
         ),
       ],
     );

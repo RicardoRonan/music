@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/widgets/app_loader.dart';
 import '../providers/library_scan_progress_provider.dart';
 import '../providers/local_library_notifier.dart';
 
@@ -32,11 +33,7 @@ Future<int> runDeviceMusicScanWithProgressDialog(
             if (progress == null) {
               return Row(
                 children: [
-                  const SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
+                  const AppLoader.small(),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Text(
@@ -56,7 +53,10 @@ Future<int> runDeviceMusicScanWithProgressDialog(
                   const LinearProgressIndicator(),
                   const SizedBox(height: AppSpacing.md),
                   Text(
-                    'Scanning storage for music…',
+                    !kIsWeb &&
+                            defaultTargetPlatform == TargetPlatform.windows
+                        ? 'Scanning your Music folder…'
+                        : 'Scanning storage for music…',
                     style: theme.textTheme.bodyLarge,
                   ),
                   const SizedBox(height: AppSpacing.xs),

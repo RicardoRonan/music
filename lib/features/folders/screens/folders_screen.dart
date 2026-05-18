@@ -53,8 +53,16 @@ class FoldersScreen extends ConsumerWidget {
                 messenger.showSnackBar(
                   SnackBar(
                     content: Text(
-                      'Added $n track${n == 1 ? '' : 's'} from device scan.',
+                      kIsWeb
+                          ? 'Imported $n track${n == 1 ? '' : 's'}.'
+                          : 'Added $n track${n == 1 ? '' : 's'} from device scan.',
                     ),
+                  ),
+                );
+              } else if (kIsWeb) {
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('No files chosen (or picker was cancelled).'),
                   ),
                 );
               }
@@ -106,12 +114,18 @@ class _EmptyFolders extends StatelessWidget {
           children: [
             Text('No local music found', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: AppSpacing.xs),
-            const Text('Scan your device or import audio files to get started.'),
+            Text(
+              kIsWeb
+                  ? 'Choose audio files from your computer to build your library.'
+                  : 'Scan your device or import audio files to get started.',
+            ),
             const SizedBox(height: AppSpacing.md),
             FilledButton.icon(
-              onPressed: kIsWeb ? null : onScan,
-              icon: const Icon(Icons.manage_search_rounded),
-              label: const Text('Rescan Library'),
+              onPressed: onScan,
+              icon: Icon(
+                kIsWeb ? Icons.upload_file_rounded : Icons.manage_search_rounded,
+              ),
+              label: Text(kIsWeb ? 'Choose music files' : 'Rescan Library'),
             ),
           ],
         ),

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 
+import '../data/io_platform.dart';
 import '../just_audio_import.dart';
 import '../models/song.dart';
 
@@ -17,11 +18,12 @@ class AudioPlayerService {
 
   AudioPlayer get player => _player;
 
-  AudioSource? _audioSourceForSong(Song s) {
+  Future<AudioSource?> _audioSourceForSong(Song s) async {
     final tag = _mediaTag(s);
     if (s.localAudioUri != null && s.localAudioUri!.trim().isNotEmpty) {
+      final resolved = await resolvePlaybackUri(s.localAudioUri!.trim());
       return AudioSource.uri(
-        Uri.parse(s.localAudioUri!.trim()),
+        Uri.parse(resolved),
         tag: tag,
       );
     }
@@ -44,7 +46,7 @@ class AudioPlayerService {
     if (queue.isEmpty) return Duration.zero;
     final sources = <AudioSource>[];
     for (final s in queue) {
-      final src = _audioSourceForSong(s);
+      final src = await _audioSourceForSong(s);
       if (src != null) {
         sources.add(src);
       }
@@ -65,7 +67,7 @@ class AudioPlayerService {
   ///
   /// Returns `false` if [song] is not playable or there is no active playlist.
   Future<bool> addSongAfterCurrent(Song song) async {
-    final source = _audioSourceForSong(song);
+    final source = await _audioSourceForSong(song);
     final playlist = _playlist;
     if (source == null || playlist == null) {
       return false;
@@ -78,7 +80,7 @@ class AudioPlayerService {
   }
 
   Future<bool> addSongToEnd(Song song) async {
-    final source = _audioSourceForSong(song);
+    final source = await _audioSourceForSong(song);
     final playlist = _playlist;
     if (source == null || playlist == null) {
       return false;
@@ -116,6 +118,11 @@ class AudioPlayerService {
   Future<void> pause() => _player.pause();
 
   Future<void> seek(Duration position) => _player.seek(position);
+
+  double get volume => _player.volume;
+
+  Future<void> setVolume(double volume) =>
+      _player.setVolume(volume.clamp(0.0, 1.0));
 
   Future<void> seekToNext() async {
     if (_player.hasNext) await _player.seekToNext();

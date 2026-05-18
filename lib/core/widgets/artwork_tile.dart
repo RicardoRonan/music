@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import 'app_loader.dart';
 import 'artwork_tile_local_stub.dart'
     if (dart.library.io) 'artwork_tile_local_io.dart' as artwork_local;
 
@@ -60,13 +61,7 @@ class ArtworkTile extends StatelessWidget {
                   ),
           placeholder: (_, __) => ColoredBox(
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            child: const Center(
-              child: SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
+            child: const Center(child: AppLoader.small()),
           ),
           errorWidget: (ctx, url, error) => fallback,
         ),

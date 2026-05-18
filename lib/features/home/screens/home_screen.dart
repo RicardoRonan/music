@@ -10,6 +10,7 @@ import '../../../core/widgets/section_header.dart';
 import '../../player/providers/app_providers.dart';
 import '../../player/providers/player_notifier.dart';
 import '../../player/providers/preferences_notifier.dart';
+import '../../player/widgets/library_scan_progress_dialog.dart';
 import '../widgets/discover_music_strip.dart';
 import '../widgets/playlist_strip_card.dart';
 import '../widgets/song_row_tile.dart';
@@ -80,56 +81,89 @@ class HomeScreen extends ConsumerWidget {
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const SizedBox(height: AppSpacing.xs),
-                          const Text(
-                            'Import your local MP3 files or run a device scan to start offline playback.',
+                          Text(
+                            kIsWeb
+                                ? 'Choose MP3 or other audio files from your computer to play in the browser.'
+                                : 'Import your local MP3 files or run a device scan to start offline playback.',
                           ),
                           const SizedBox(height: AppSpacing.sm),
                           Wrap(
                             spacing: AppSpacing.sm,
                             runSpacing: AppSpacing.sm,
                             children: [
+                              if (!kIsWeb)
+                                FilledButton.icon(
+                                  onPressed: () async {
+                                    final added =
+                                        await runDeviceMusicScanWithProgressDialog(
+                                      context,
+                                      ref,
+                                    );
+                                    if (!context.mounted) return;
+                                    final isWindows = !kIsWeb &&
+                                        defaultTargetPlatform ==
+                                            TargetPlatform.windows;
+                                    final message = switch (added) {
+                                      -1 =>
+                                        'Allow audio/media access in Android settings, then scan again.',
+                                      0 => isWindows
+                                          ? 'No audio in your Music folder. Try Choose folder…'
+                                          : 'No new music found on this device yet.',
+                                      _ => isWindows
+                                          ? 'Added $added track${added == 1 ? '' : 's'} from your Music folder.'
+                                          : 'Added $added track${added == 1 ? '' : 's'} from your device.'
+                                    };
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(message)),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.manage_search_rounded),
+                                  label: Text(
+                                    !kIsWeb &&
+                                            defaultTargetPlatform ==
+                                                TargetPlatform.windows
+                                        ? 'Scan Music folder'
+                                        : 'Scan device',
+                                  ),
+                                ),
+                              if (!kIsWeb &&
+                                  defaultTargetPlatform ==
+                                      TargetPlatform.windows)
+                                OutlinedButton.icon(
+                                  onPressed: () async {
+                                    final added = await ref
+                                        .read(localLibraryProvider.notifier)
+                                        .pickMusicFolderAndScan();
+                                    if (!context.mounted) return;
+                                    final message = added == 0
+                                        ? 'No files in that folder (or picker cancelled).'
+                                        : 'Added $added track${added == 1 ? '' : 's'}.';
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(message)),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.folder_open_rounded),
+                                  label: const Text('Choose folder…'),
+                                ),
                               FilledButton.icon(
-                                onPressed: kIsWeb
-                                    ? null
-                                    : () async {
-                                        final added = await ref
-                                            .read(localLibraryProvider.notifier)
-                                            .scanDeviceForMusic();
-                                        if (!context.mounted) return;
-                                        final message = switch (added) {
-                                          -1 =>
-                                            'Allow audio/media access in Android settings, then scan again.',
-                                          0 =>
-                                            'No new music found on this device yet.',
-                                          _ =>
-                                            'Added $added track${added == 1 ? '' : 's'} from your device.'
-                                        };
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(content: Text(message)),
-                                        );
-                                      },
-                                icon: const Icon(Icons.manage_search_rounded),
-                                label: const Text('Scan device'),
-                              ),
-                              OutlinedButton.icon(
-                                onPressed: kIsWeb
-                                    ? null
-                                    : () async {
-                                        final added = await ref
-                                            .read(localLibraryProvider.notifier)
-                                            .importAudioFiles();
-                                        if (!context.mounted) return;
-                                        final message = added == 0
-                                            ? 'No files imported.'
-                                            : 'Imported $added track${added == 1 ? '' : 's'}.';
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(content: Text(message)),
-                                        );
-                                      },
+                                onPressed: () async {
+                                  final added = await ref
+                                      .read(localLibraryProvider.notifier)
+                                      .importAudioFiles();
+                                  if (!context.mounted) return;
+                                  final message = added == 0
+                                      ? (kIsWeb
+                                          ? 'No files chosen (or picker was cancelled).'
+                                          : 'No files imported.')
+                                      : 'Imported $added track${added == 1 ? '' : 's'}.';
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(message)),
+                                  );
+                                },
                                 icon: const Icon(Icons.upload_file_rounded),
-                                label: const Text('Import files'),
+                                label: Text(
+                                  kIsWeb ? 'Choose music files' : 'Import files',
+                                ),
                               ),
                             ],
                           ),

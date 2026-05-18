@@ -9,6 +9,8 @@ import 'package:path_provider/path_provider.dart';
 String resolvedFileUriForPlayback(String absolutePath) =>
     Uri.file(absolutePath, windows: Platform.isWindows).toString();
 
+Future<String> resolvePlaybackUri(String uriString) async => uriString.trim();
+
 /// Normalized path/key for detecting the same backing file regardless of URI
 /// string variants (slashes, casing on Windows).
 String playbackUriDedupeKey(String uriString) {

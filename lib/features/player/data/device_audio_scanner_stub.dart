@@ -6,3 +6,19 @@ Future<List<String>> collectDeviceAudioPaths({
   int maxFiles = 10000,
 }) async =>
     const [];
+
+Future<List<String>> collectWindowsMusicFolderPaths({
+  void Function(int filesFound)? onProgress,
+  int maxFiles = 10000,
+}) async =>
+    const [];
+
+Future<List<String>> collectAudioPathsInFolder(
+  String folderPath, {
+  void Function(int filesFound)? onProgress,
+  int maxFiles = 10000,
+  int maxDepth = 80,
+}) async =>
+    const [];
+
+Future<List<String>> existingWindowsMusicFolderPaths() async => const [];

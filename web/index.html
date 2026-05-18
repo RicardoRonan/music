@@ -31,8 +31,94 @@
 
   <title>flutter_starter</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    body {
+      margin: 0;
+      background: #faf8ff;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #141218;
+      }
+    }
+
+    #app-loader {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #app-loader .jimu-bars {
+      position: relative;
+      width: 53.584px;
+      height: 40px;
+    }
+
+    #app-loader .jimu-bar {
+      position: absolute;
+      bottom: 0;
+      width: 13.6px;
+      height: 32px;
+      background: #076fe5;
+      animation: loading-keys-app-loading 0.8s infinite ease-in-out;
+    }
+
+    #app-loader .jimu-bar-left {
+      left: 0;
+    }
+
+    #app-loader .jimu-bar-center {
+      left: 19.992px;
+      animation-delay: 0.16s;
+    }
+
+    #app-loader .jimu-bar-right {
+      left: 39.984px;
+      animation-delay: 0.32s;
+    }
+
+    @keyframes loading-keys-app-loading {
+      0%,
+      80%,
+      100% {
+        opacity: 0.75;
+        box-shadow: 0 0 #076fe5;
+        height: 32px;
+      }
+
+      40% {
+        opacity: 1;
+        box-shadow: 0 -8px #076fe5;
+        height: 40px;
+      }
+    }
+  </style>
 </head>
 <body>
+  <div id="app-loader" aria-label="Loading" role="status">
+    <div class="jimu-bars">
+      <div class="jimu-bar jimu-bar-left"></div>
+      <div class="jimu-bar jimu-bar-center"></div>
+      <div class="jimu-bar jimu-bar-right"></div>
+    </div>
+  </div>
+
+  <script>
+    function removeAppLoader() {
+      var el = document.getElementById('app-loader');
+      if (el) {
+        el.remove();
+      }
+    }
+
+    window.addEventListener('flutter-first-frame', removeAppLoader);
+  </script>
+
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader

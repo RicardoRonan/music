@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/device_audio_scanner.dart';
 import '../data/io_platform.dart';
+import '../data/web_audio_storage.dart';
 import 'library_scan_progress_provider.dart';
 import '../data/local_audio_classification.dart';
 import '../data/local_audio_extensions.dart';
@@ -37,6 +38,17 @@ class LocalLibraryNotifier extends Notifier<List<Song>> {
         await _store.saveSongs(afterShort);
       });
     }
+    if (kIsWeb && afterShort.isNotEmpty) {
+      unawaited(() async {
+        await WebAudioStorage.instance.init();
+        await WebAudioStorage.instance.warmUrls(
+          afterShort
+              .map((s) => s.localAudioUri)
+              .whereType<String>()
+              .where((u) => u.trim().isNotEmpty),
+        );
+      }());
+    }
     return afterShort;
   }
 
@@ -53,9 +65,8 @@ class LocalLibraryNotifier extends Notifier<List<Song>> {
           )
           .toList();
 
-  /// Returns number of tracks added (after dedupe). Web returns 0.
+  /// Returns number of tracks added (after dedupe).
   Future<int> importAudioFiles() async {
-    if (kIsWeb) return 0;
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowMultiple: true,
@@ -122,20 +133,72 @@ class LocalLibraryNotifier extends Notifier<List<Song>> {
     return added;
   }
 
-  /// Crawls accessible folders (user storage, drives on desktop, shared
-  /// storage on Android) for known audio extensions. Skips probing duration
-  /// for speed; length shows as 0:00 until playback resolves real duration.
+  bool get _isWindowsDesktop =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
+
+  /// Crawls accessible folders for known audio extensions. On Windows, scans
+  /// the user Music folder (including OneDrive). Skips probing duration for
+  /// speed; length shows as 0:00 until playback resolves real duration.
   ///
   /// Returns added count, `0` if nothing new, or `-1` if Android read
   /// permission was denied.
   Future<int> scanDeviceForMusic() async {
+    if (kIsWeb) return importAudioFiles();
     final progress = ref.read(libraryScanProgressProvider.notifier);
     try {
-      if (kIsWeb) return 0;
       if (!await ensureDeviceScanPermissions()) return -1;
 
       progress.setCollecting(0);
-      final paths = await collectDeviceAudioPaths(
+      final paths = _isWindowsDesktop
+          ? await collectWindowsMusicFolderPaths(
+              maxFiles: 10000,
+              onProgress: (n) {
+                if (n == 1 || n % 250 == 0) {
+                  progress.setCollecting(n);
+                }
+              },
+            )
+          : await collectDeviceAudioPaths(
+              maxFiles: 10000,
+              onProgress: (n) {
+                if (n == 1 || n % 250 == 0) {
+                  progress.setCollecting(n);
+                }
+              },
+            );
+
+      if (paths.isEmpty && _isWindowsDesktop) {
+        return pickMusicFolderAndScan();
+      }
+      if (paths.isEmpty) return 0;
+
+      return _importScannedPaths(paths);
+    } finally {
+      progress.clear();
+    }
+  }
+
+  /// Opens a folder picker (Windows/desktop) and scans that tree for audio.
+  Future<int> pickMusicFolderAndScan() async {
+    if (kIsWeb) return importAudioFiles();
+
+    String? initialDirectory;
+    if (_isWindowsDesktop) {
+      final folders = await existingWindowsMusicFolderPaths();
+      if (folders.isNotEmpty) initialDirectory = folders.first;
+    }
+
+    final picked = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'Select your Music folder',
+      initialDirectory: initialDirectory,
+    );
+    if (picked == null || picked.trim().isEmpty) return 0;
+
+    final progress = ref.read(libraryScanProgressProvider.notifier);
+    try {
+      progress.setCollecting(0);
+      final paths = await collectAudioPathsInFolder(
+        picked,
         maxFiles: 10000,
         onProgress: (n) {
           if (n == 1 || n % 250 == 0) {
@@ -144,52 +207,58 @@ class LocalLibraryNotifier extends Notifier<List<Song>> {
         },
       );
       if (paths.isEmpty) return 0;
-
-      final existingKeys = <String>{
-        for (final s in state) songPlaybackDedupeKey(s),
-      };
-      final merged = List<Song>.from(state);
-      var added = 0;
-      final total = paths.length;
-      final importReportStep = total < 200 ? 1 : (total ~/ 100).clamp(1, 500);
-
-      final prefs = ref.read(preferencesNotifierProvider);
-      for (var i = 0; i < paths.length; i++) {
-        final filePath = paths[i];
-        final uri = resolvedFileUriForPlayback(filePath);
-        final genre = LocalAudioClassification.genreForLocalDuration(
-          Duration.zero,
-          tagLongAsAudiobook: prefs.tagLongLocalAudioAsAudiobook,
-        );
-        final song = LocalSongFactory.fromResolvedUri(
-          sourceUri: uri,
-          displayPathOrName: filePath,
-          genreTag: genre,
-        );
-        final dk = songPlaybackDedupeKey(song);
-        if (!existingKeys.contains(dk)) {
-          merged.add(song);
-          existingKeys.add(dk);
-          added++;
-        }
-
-        if (i % importReportStep == 0 || i == paths.length - 1) {
-          progress.setImporting(i + 1, total);
-        }
-
-        if (added % 500 == 0) {
-          await Future<void>.delayed(Duration.zero);
-        }
-      }
-
-      if (added == 0) return 0;
-      final clean = dedupePersistedLibrary(merged);
-      await _store.saveSongs(clean);
-      state = clean;
-      return added;
+      return _importScannedPaths(paths);
     } finally {
       progress.clear();
     }
+  }
+
+  Future<int> _importScannedPaths(List<String> paths) async {
+    if (paths.isEmpty) return 0;
+
+    final progress = ref.read(libraryScanProgressProvider.notifier);
+    final existingKeys = <String>{
+      for (final s in state) songPlaybackDedupeKey(s),
+    };
+    final merged = List<Song>.from(state);
+    var added = 0;
+    final total = paths.length;
+    final importReportStep = total < 200 ? 1 : (total ~/ 100).clamp(1, 500);
+
+    final prefs = ref.read(preferencesNotifierProvider);
+    for (var i = 0; i < paths.length; i++) {
+      final filePath = paths[i];
+      final uri = resolvedFileUriForPlayback(filePath);
+      final genre = LocalAudioClassification.genreForLocalDuration(
+        Duration.zero,
+        tagLongAsAudiobook: prefs.tagLongLocalAudioAsAudiobook,
+      );
+      final song = LocalSongFactory.fromResolvedUri(
+        sourceUri: uri,
+        displayPathOrName: filePath,
+        genreTag: genre,
+      );
+      final dk = songPlaybackDedupeKey(song);
+      if (!existingKeys.contains(dk)) {
+        merged.add(song);
+        existingKeys.add(dk);
+        added++;
+      }
+
+      if (i % importReportStep == 0 || i == paths.length - 1) {
+        progress.setImporting(i + 1, total);
+      }
+
+      if (added % 500 == 0) {
+        await Future<void>.delayed(Duration.zero);
+      }
+    }
+
+    if (added == 0) return 0;
+    final clean = dedupePersistedLibrary(merged);
+    await _store.saveSongs(clean);
+    state = clean;
+    return added;
   }
 
   /// Persists decoder length for local files when stored metadata was missing
@@ -264,6 +333,18 @@ class LocalLibraryNotifier extends Notifier<List<Song>> {
   }
 
   Future<void> removeSong(String id) async {
+    if (kIsWeb) {
+      final idx = state.indexWhere((s) => s.id == id);
+      if (idx != -1) {
+        final uri = state[idx].localAudioUri;
+        if (uri != null) {
+          final storageId = webAudioStorageId(uri);
+          if (storageId != null) {
+            await WebAudioStorage.instance.delete(storageId);
+          }
+        }
+      }
+    }
     final next = state.where((s) => s.id != id).toList();
     final clean = dedupePersistedLibrary(next);
     await _store.saveSongs(clean);
@@ -271,6 +352,9 @@ class LocalLibraryNotifier extends Notifier<List<Song>> {
   }
 
   Future<void> clearLibrary() async {
+    if (kIsWeb) {
+      await WebAudioStorage.instance.clear();
+    }
     await _store.saveSongs([]);
     state = [];
   }
@@ -281,7 +365,6 @@ class LocalLibraryNotifier extends Notifier<List<Song>> {
     Iterable<Song> candidates, {
     int maxProbes = 80,
   }) async {
-    if (kIsWeb) return;
     final wantIds = <String>{};
     for (final c in candidates) {
       if (c.duration > const Duration(seconds: 2)) continue;

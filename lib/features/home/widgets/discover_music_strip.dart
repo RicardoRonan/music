@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/utils/responsive_layout.dart';
+import '../../../core/widgets/app_loader.dart';
 import '../../../core/widgets/artwork_tile.dart';
 import '../../player/models/discovered_recording.dart';
 import '../../player/widgets/song_streaming_links.dart';
@@ -93,12 +94,7 @@ class _DiscoverMusicStripState extends ConsumerState<DiscoverMusicStrip> {
         padding: EdgeInsets.symmetric(horizontal: hPad, vertical: AppSpacing.md),
         child: SizedBox(
           height: 240,
-          child: Center(
-            child: CircularProgressIndicator(
-              color: theme.colorScheme.primary,
-              strokeWidth: 2,
-            ),
-          ),
+          child: const Center(child: AppLoader()),
         ),
       );
     }
@@ -167,13 +163,7 @@ class _DiscoverMusicStripState extends ConsumerState<DiscoverMusicStrip> {
                 if (i >= items.length) {
                   return const Padding(
                     padding: EdgeInsets.only(left: AppSpacing.sm, right: AppSpacing.sm),
-                    child: Center(
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
+                    child: Center(child: AppLoader.small()),
                   );
                 }
                 final d = items[i];

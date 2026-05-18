@@ -104,7 +104,13 @@ class PlayerNotifier extends Notifier<PlayerState> {
         p.loopModeStream.listen((m) {
           state = state.copyWith(loopMode: m);
         }),
+      )
+      ..add(
+        p.volumeStream.listen((v) {
+          state = state.copyWith(volume: v);
+        }),
       );
+    state = state.copyWith(volume: p.volume);
   }
 
   Future<void> _mergeResolvedLibraryDuration(String songId, Duration d) async {
@@ -286,6 +292,8 @@ class PlayerNotifier extends Notifier<PlayerState> {
   }
 
   Future<void> seekTo(Duration position) => _audio.seek(position);
+
+  Future<void> setVolume(double volume) => _audio.setVolume(volume);
 
   Future<void> skipNext() async {
     final p = _audio.player;
