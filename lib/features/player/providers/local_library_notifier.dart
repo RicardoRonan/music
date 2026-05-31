@@ -110,7 +110,7 @@ class LocalLibraryNotifier extends Notifier<List<Song>> {
         duration,
         tagLongAsAudiobook: prefs.tagLongLocalAudioAsAudiobook,
       );
-      final song = LocalSongFactory.fromResolvedUri(
+      final song = await LocalSongFactory.fromResolvedUriWithProbedDuration(
         sourceUri: uri,
         displayPathOrName: probePath,
         duration: duration,
@@ -357,6 +357,59 @@ class LocalLibraryNotifier extends Notifier<List<Song>> {
     }
     await _store.saveSongs([]);
     state = [];
+  }
+
+  /// Lightweight rescan for newly added device audio without UI progress noise.
+  Future<void> runDeviceScanInBackground() async {
+    if (kIsWeb) return;
+    try {
+      if (!await ensureDeviceScanPermissions()) return;
+
+      final paths = _isWindowsDesktop
+          ? await collectWindowsMusicFolderPaths(maxFiles: 2000)
+          : await collectDeviceAudioPaths(maxFiles: 2000);
+      if (paths.isEmpty) return;
+
+      final existingKeys = <String>{
+        for (final s in state) songPlaybackDedupeKey(s),
+      };
+      final merged = List<Song>.from(state);
+      var added = 0;
+      final prefs = ref.read(preferencesNotifierProvider);
+
+      for (final filePath in paths) {
+        final uri = resolvedFileUriForPlayback(filePath);
+        final genre = LocalAudioClassification.genreForLocalDuration(
+          Duration.zero,
+          tagLongAsAudiobook: prefs.tagLongLocalAudioAsAudiobook,
+        );
+        final song = await LocalSongFactory.fromResolvedUriWithProbedDuration(
+          sourceUri: uri,
+          displayPathOrName: filePath,
+          genreTag: genre,
+        );
+        final dk = songPlaybackDedupeKey(song);
+        if (existingKeys.contains(dk)) continue;
+
+        if (LocalAudioClassification.shouldOmitShort(
+          song.duration,
+          excludeUnder30Seconds: prefs.excludeAudioUnder30Seconds,
+        )) {
+          continue;
+        }
+
+        merged.add(song);
+        existingKeys.add(dk);
+        added++;
+      }
+
+      if (added == 0) return;
+      final clean = dedupePersistedLibrary(merged);
+      await _store.saveSongs(clean);
+      state = clean;
+    } catch (e, st) {
+      debugPrint('runDeviceScanInBackground: $e\n$st');
+    }
   }
 
   /// Probes local files with unknown/zero duration so lists can show lengths

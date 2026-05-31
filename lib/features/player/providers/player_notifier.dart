@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../just_audio_import.dart' hide PlayerState;
 
@@ -23,6 +24,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
   AudioPlayerService get _audio => ref.read(audioPlayerServiceProvider);
   final List<StreamSubscription<dynamic>> _subs = [];
   bool _streamsAttached = false;
+  bool _hadActivePlayback = false;
 
   @override
   PlayerState build() {
@@ -62,6 +64,9 @@ class PlayerNotifier extends Notifier<PlayerState> {
       ..add(
         p.playerStateStream.listen((ps) {
           final proc = mapProcessingState(ps.processingState);
+          if (state.queue.isNotEmpty) {
+            _hadActivePlayback = true;
+          }
           state = state.copyWith(
             isPlaying: ps.playing,
             processingState: proc,
@@ -69,6 +74,13 @@ class PlayerNotifier extends Notifier<PlayerState> {
                 proc == AppProcessingState.buffering ||
                 proc == AppProcessingState.completed,
           );
+          if (!kIsWeb &&
+              ps.processingState == ProcessingState.idle &&
+              state.queue.isEmpty &&
+              _hadActivePlayback) {
+            _hadActivePlayback = false;
+            SystemChannels.platform.invokeMethod('SystemNavigator.pop');
+          }
         }),
       )
       ..add(
@@ -420,6 +432,10 @@ class PlayerNotifier extends Notifier<PlayerState> {
   Future<void> clearQueue() async {
     await _audio.clearQueue();
     state = PlayerState.empty;
+  }
+
+  Future<void> stop() async {
+    await clearQueue();
   }
 
   Future<void> saveQueueAsPlaylist(String title) async {

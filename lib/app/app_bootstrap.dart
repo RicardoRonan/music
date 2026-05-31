@@ -32,17 +32,17 @@ class _AppBootstrapState extends State<AppBootstrap> {
 
   Future<void> _initialize() async {
     try {
-      await initBackgroundPlayback();
-
       if (kIsWeb) {
         await WebAudioStorage.instance.init();
       }
 
-      final session = await AudioSession.instance;
-      await session.configure(const AudioSessionConfiguration.music());
-
       final prefs = await SharedPreferences.getInstance();
       await migrateWelcomeOnboardingIfNeeded(prefs);
+
+      await initBackgroundPlayback(prefs: prefs);
+
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration.music());
 
       if (!mounted) return;
       setState(() => _prefs = prefs);

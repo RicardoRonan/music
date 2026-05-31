@@ -6,6 +6,7 @@ import '../../../core/config/acoustid_client_key.dart';
 import '../../../core/config/spotify_client_credentials.dart';
 import '../data/acoustid_repository.dart';
 import '../data/chromaprint_runner.dart';
+import '../data/local_song_factory.dart';
 import '../data/spotify_repository.dart';
 import '../models/enriched_track_metadata.dart';
 import '../models/track_enrichment_key.dart';
@@ -39,6 +40,32 @@ Future<void> _persistEnrichmentAlbumArt(
   final aid = key.albumId.trim();
   if (aid.isEmpty) return;
   await ref.read(albumArtworkProvider.notifier).rememberArtworkUrl(aid, url);
+}
+
+EnrichedTrackMetadata? _filenameFallbackMetadata(TrackEnrichmentKey key) {
+  if (!key.isLocalFile) return null;
+  final uri = key.localAudioUri?.trim();
+  if (uri == null || uri.isEmpty) return null;
+
+  if (kIsWeb) {
+    return EnrichedTrackMetadata(
+      title: key.title,
+      artistName: key.artistName,
+      albumTitle: key.albumTitle,
+      confidence: 0.35,
+    );
+  }
+
+  var displayPath = uri;
+  final parsed = Uri.tryParse(uri);
+  if (parsed != null && parsed.scheme == 'file') {
+    displayPath = parsed.path;
+  }
+
+  return LocalSongFactory.filenameFallbackMetadata(
+    sourceUri: uri,
+    displayPathOrName: displayPath,
+  );
 }
 
 /// Resolves display metadata: **Spotify** (when credentials are set) as the main
@@ -84,12 +111,28 @@ final trackEnrichmentProvider = FutureProvider.autoDispose
       }
     }
 
+    final albumTrackCount = ref
+        .read(localLibraryProvider)
+        .where((s) => s.albumId == key.albumId)
+        .length;
+
     // MusicBrainz only when nothing else matched (avoids wrong MB matches when Spotify works).
     meta ??= await repo.lookupFromLocalHints(
       title: key.title,
       artistName: key.artistName,
       albumTitle: key.albumTitle,
+      expectedAlbumTrackCount:
+          albumTrackCount > 1 ? albumTrackCount : null,
     );
+
+    if (meta == null || meta.confidence < 0.5) {
+      final fallback = _filenameFallbackMetadata(key);
+      if (fallback != null) {
+        meta = meta == null || fallback.confidence > meta.confidence
+            ? fallback
+            : meta;
+      }
+    }
   } catch (e, st) {
     debugPrint('trackEnrichmentProvider: $e\n$st');
     return null;

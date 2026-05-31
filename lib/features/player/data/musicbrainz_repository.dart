@@ -61,6 +61,7 @@ class MusicBrainzRepository {
     required String title,
     required String artistName,
     required String albumTitle,
+    int? expectedAlbumTrackCount,
   }) async {
     final cleanTitle = sanitizeTrackTitleForSearch(title);
     final cleanArtist = sanitizeTrackTitleForSearch(artistName);
@@ -90,6 +91,7 @@ class MusicBrainzRepository {
           localTitle: cleanTitle,
           localArtist: cleanArtist,
           localAlbum: cleanAlbum,
+          expectedAlbumTrackCount: expectedAlbumTrackCount,
         );
         if (enriched != null) return enriched;
       }
@@ -329,6 +331,7 @@ class MusicBrainzRepository {
     required String localTitle,
     required String localArtist,
     required String localAlbum,
+    int? expectedAlbumTrackCount,
   }) {
     final recTitle = recording['title'] as String?;
     if (recTitle == null || recTitle.trim().isEmpty) return null;
@@ -350,7 +353,10 @@ class MusicBrainzRepository {
     final releasesRaw = recording['releases'];
     if (releasesRaw is! List<dynamic> || releasesRaw.isEmpty) return null;
 
-    final orderedReleases = _orderReleasesForPick(releasesRaw);
+    final orderedReleases = _orderReleasesForPick(
+      releasesRaw,
+      expectedTrackCount: expectedAlbumTrackCount,
+    );
 
     for (final release in orderedReleases) {
       final releaseTitle = (release['title'] as String?)?.trim() ?? '';
@@ -386,6 +392,7 @@ class MusicBrainzRepository {
         artworkUrl: artworkUrl,
         recordingMbid: recordingId,
         releaseMbid: releaseId,
+        confidence: 0.78,
       );
     }
     return null;
@@ -435,13 +442,17 @@ class MusicBrainzRepository {
     final b = _normalizeTitle(localTitle);
     if (a.isEmpty || b.isEmpty) return false;
     if (a == b) return true;
-    if (a.length < 8 && b.length < 8) {
-      return a == b;
+
+    final wordsA = a.split(' ').where((w) => w.length >= 3).toSet();
+    final wordsB = b.split(' ').where((w) => w.length >= 3).toSet();
+    if (wordsA.isEmpty || wordsB.isEmpty) {
+      return a.length >= 3 && a == b;
     }
-    if (a.length >= 4 && b.length >= 4 && (a.contains(b) || b.contains(a))) {
-      return true;
-    }
-    return false;
+
+    final overlap = wordsA.intersection(wordsB).length;
+    final requiredMatches =
+        (math.max(wordsA.length, wordsB.length) * 0.6).ceil();
+    return overlap >= requiredMatches;
   }
 
   bool _artistHintUseful(String localArtist) {
@@ -472,7 +483,10 @@ class MusicBrainzRepository {
     return lower.replaceAll(RegExp(r'[^a-z0-9]+'), ' ').trim();
   }
 
-  List<Map<String, dynamic>> _orderReleasesForPick(List<dynamic> releasesRaw) {
+  List<Map<String, dynamic>> _orderReleasesForPick(
+    List<dynamic> releasesRaw, {
+    int? expectedTrackCount,
+  }) {
     final all = <Map<String, dynamic>>[];
     for (final r in releasesRaw) {
       if (r is Map<String, dynamic>) all.add(r);
@@ -486,11 +500,32 @@ class MusicBrainzRepository {
       if (rg is Map<String, dynamic> && rg['primary-type'] == 'Album') {
         score += 2;
       }
+      if (expectedTrackCount != null && expectedTrackCount > 1) {
+        final count = _releaseTrackCount(r);
+        if (count > 0 && count == expectedTrackCount) {
+          score += 6;
+        }
+      }
       return score;
     }
 
     all.sort((a, b) => rank(b).compareTo(rank(a)));
     return all;
+  }
+
+  int _releaseTrackCount(Map<String, dynamic> release) {
+    final media = release['media'];
+    if (media is! List<dynamic>) return 0;
+    var total = 0;
+    for (final m in media) {
+      if (m is! Map<String, dynamic>) continue;
+      final tracks =
+          (m['tracks'] is List<dynamic>) ? m['tracks'] : m['track'];
+      if (tracks is List<dynamic>) {
+        total += tracks.length;
+      }
+    }
+    return total;
   }
 
   String? _luceneQuotedPhrase(String raw) {

@@ -154,6 +154,7 @@ class AcoustIdRepository {
       artworkUrl: artworkUrl,
       recordingMbid: recId,
       releaseMbid: releaseId,
+      confidence: bestScore.clamp(0.0, 1.0),
     );
   }
 

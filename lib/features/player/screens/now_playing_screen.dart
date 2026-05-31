@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -245,7 +246,7 @@ class NowPlayingScreen extends ConsumerWidget {
 
 /// Only this subtree rebuilds on each [positionStream] tick — not the artwork
 /// / metadata / enrichment chain above.
-class _NowPlayingSeekBlock extends ConsumerWidget {
+class _NowPlayingSeekBlock extends ConsumerStatefulWidget {
   const _NowPlayingSeekBlock({
     required this.song,
     required this.theme,
@@ -255,86 +256,19 @@ class _NowPlayingSeekBlock extends ConsumerWidget {
   final ThemeData theme;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final snap = ref.watch(
-      playerNotifierProvider.select(
-        (p) => (
-          p.position,
-          p.duration,
-          p.processingState,
-          p.errorMessage,
-        ),
-      ),
-    );
-    final (position, duration, processingState, errorMessage) = snap;
-    final notifier = ref.read(playerNotifierProvider.notifier);
-
-    final effectiveDuration =
-        duration.inMilliseconds > 0 ? duration : song.duration;
-    final maxMs = effectiveDuration.inMilliseconds > 0
-        ? effectiveDuration.inMilliseconds.toDouble()
-        : 1.0;
-    final posMs =
-        position.inMilliseconds.clamp(0, maxMs.round()).toDouble();
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        _NowPlayingVolumePopout(theme: theme),
-        if (processingState == AppProcessingState.loading)
-          const Center(child: AppLoader.small())
-        else if (errorMessage != null)
-          Text(
-            errorMessage,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.error,
-            ),
-          ),
-        if (processingState == AppProcessingState.loading ||
-            errorMessage != null)
-          const SizedBox(height: AppSpacing.sm),
-        Slider(
-          value: posMs,
-          max: maxMs,
-          onChanged: (v) {
-            notifier.seekTo(Duration(milliseconds: v.round()));
-          },
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.xs,
-            AppSpacing.xs,
-            AppSpacing.xs,
-            AppSpacing.xs,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(formatTrackDuration(position)),
-              Text(formatTrackDuration(effectiveDuration)),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+  ConsumerState<_NowPlayingSeekBlock> createState() =>
+      _NowPlayingSeekBlockState();
 }
 
-class _NowPlayingVolumePopout extends ConsumerStatefulWidget {
-  const _NowPlayingVolumePopout({required this.theme});
-
-  final ThemeData theme;
+class _NowPlayingSeekBlockState extends ConsumerState<_NowPlayingSeekBlock> {
+  bool _volumePopupVisible = false;
+  Timer? _volumeDismissTimer;
 
   @override
-  ConsumerState<_NowPlayingVolumePopout> createState() =>
-      _NowPlayingVolumePopoutState();
-}
-
-class _NowPlayingVolumePopoutState
-    extends ConsumerState<_NowPlayingVolumePopout> {
-  bool _expanded = false;
+  void dispose() {
+    _volumeDismissTimer?.cancel();
+    super.dispose();
+  }
 
   IconData _volumeIcon(double volume) {
     if (volume <= 0.001) return Icons.volume_off_rounded;
@@ -343,86 +277,175 @@ class _NowPlayingVolumePopoutState
     return Icons.volume_up_rounded;
   }
 
+  void _hideVolumePopup() {
+    _volumeDismissTimer?.cancel();
+    if (_volumePopupVisible) {
+      setState(() => _volumePopupVisible = false);
+    }
+  }
+
+  void _toggleVolumePopup() {
+    if (_volumePopupVisible) {
+      _hideVolumePopup();
+      return;
+    }
+    setState(() => _volumePopupVisible = true);
+    _resetVolumeDismissTimer();
+  }
+
+  void _resetVolumeDismissTimer() {
+    _volumeDismissTimer?.cancel();
+    _volumeDismissTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) _hideVolumePopup();
+    });
+  }
+
+  void _onVolumeSliderChanged(double value, PlayerNotifier notifier) {
+    _resetVolumeDismissTimer();
+    notifier.setVolume(value);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final volume = ref.watch(
-      playerNotifierProvider.select((p) => p.volume),
+    final snap = ref.watch(
+      playerNotifierProvider.select(
+        (p) => (
+          p.position,
+          p.duration,
+          p.processingState,
+          p.errorMessage,
+          p.volume,
+        ),
+      ),
     );
+    final (position, duration, processingState, errorMessage, volume) = snap;
     final notifier = ref.read(playerNotifierProvider.notifier);
     final theme = widget.theme;
     final colorScheme = theme.colorScheme;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    final effectiveDuration =
+        duration.inMilliseconds > 0 ? duration : widget.song.duration;
+    final maxMs = effectiveDuration.inMilliseconds > 0
+        ? effectiveDuration.inMilliseconds.toDouble()
+        : 1.0;
+    final posMs =
+        position.inMilliseconds.clamp(0, maxMs.round()).toDouble();
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.bottomCenter,
       children: [
-        Align(
-          alignment: Alignment.centerRight,
+        Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            if (processingState == AppProcessingState.loading)
+              const Center(child: AppLoader.small())
+            else if (errorMessage != null)
+              Text(
+                errorMessage,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.error,
+                ),
+              ),
+            if (processingState == AppProcessingState.loading ||
+                errorMessage != null)
+              const SizedBox(height: AppSpacing.sm),
+            Slider(
+              value: posMs,
+              max: maxMs,
+              onChanged: (v) {
+                notifier.seekTo(Duration(milliseconds: v.round()));
+              },
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xs,
+                AppSpacing.xs,
+                AppSpacing.xs,
+                AppSpacing.xs,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(formatTrackDuration(position)),
+                  Text(formatTrackDuration(effectiveDuration)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (_volumePopupVisible)
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _hideVolumePopup,
+              child: const SizedBox.expand(),
+            ),
+          ),
+        if (_volumePopupVisible)
+          Positioned(
+            left: AppSpacing.xs,
+            right: 52,
+            bottom: 52,
+            child: Material(
+              elevation: 6,
+              shadowColor: colorScheme.shadow.withValues(alpha: 0.22),
+              color: colorScheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(14),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.sm,
+                  AppSpacing.xs,
+                  AppSpacing.sm,
+                  AppSpacing.xs,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _volumeIcon(volume),
+                      size: 20,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    Expanded(
+                      child: Slider(
+                        value: volume.clamp(0.0, 1.0),
+                        onChanged: (v) => _onVolumeSliderChanged(v, notifier),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 40,
+                      child: Text(
+                        '${(volume * 100).round()}%',
+                        textAlign: TextAlign.end,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        Positioned(
+          right: 0,
+          bottom: 44,
           child: Semantics(
             button: true,
-            label: _expanded ? 'Hide volume' : 'Show volume',
+            label: _volumePopupVisible ? 'Hide volume' : 'Show volume',
             child: IconButton(
-              tooltip: _expanded ? 'Hide volume' : 'Volume',
+              tooltip: _volumePopupVisible ? 'Hide volume' : 'Volume',
               iconSize: 22,
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-              onPressed: () => setState(() => _expanded = !_expanded),
+              onPressed: _toggleVolumePopup,
               icon: Icon(_volumeIcon(volume)),
             ),
           ),
-        ),
-        AnimatedSize(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          alignment: Alignment.topCenter,
-          child: _expanded
-              ? Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                  child: Material(
-                    elevation: 2,
-                    shadowColor: colorScheme.shadow.withValues(alpha: 0.18),
-                    color: colorScheme.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.sm,
-                        AppSpacing.xs,
-                        AppSpacing.sm,
-                        AppSpacing.xs,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _volumeIcon(volume),
-                            size: 20,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          Expanded(
-                            child: Slider(
-                              value: volume.clamp(0.0, 1.0),
-                              onChanged: (v) => notifier.setVolume(v),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 40,
-                            child: Text(
-                              '${(volume * 100).round()}%',
-                              textAlign: TextAlign.end,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures(),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                )
-              : const SizedBox.shrink(),
         ),
       ],
     );

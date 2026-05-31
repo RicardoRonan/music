@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import '../just_audio_import.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -76,7 +77,8 @@ Future<Duration?> probeAudioDuration(String uriString) async {
     } on TimeoutException {
       return null;
     }
-  } catch (_) {
+  } catch (e) {
+    debugPrint('probeAudioDuration failed for $uriString: $e');
     return null;
   } finally {
     await player.dispose();

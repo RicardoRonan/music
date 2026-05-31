@@ -74,12 +74,120 @@ class AppTheme {
     return _buildTheme(scheme).copyWith(scaffoldBackgroundColor: Colors.black);
   }
 
+  static ThemeData glassmorphismTheme() {
+    const surfaceColor = Color(0xFF0D0B14);
+    const scheme = ColorScheme(
+      brightness: Brightness.dark,
+      primary: Color(0xFFB7D4FF),
+      onPrimary: Color(0xFF00203B),
+      primaryContainer: Color(0xFF4F4280),
+      onPrimaryContainer: Color(0xFFEADEFF),
+      secondary: Color(0xFFCBC5D6),
+      onSecondary: Color(0xFF332F3C),
+      secondaryContainer: Color(0xFF4B4758),
+      onSecondaryContainer: Color(0xFFE8E0F2),
+      tertiary: Color(0xFFE5BDDC),
+      onTertiary: Color(0xFF432941),
+      tertiaryContainer: Color(0xFF5C3F59),
+      onTertiaryContainer: Color(0xFFFFD7F7),
+      error: Color(0xFFFFB4AB),
+      onError: Color(0xFF690005),
+      errorContainer: Color(0xFF93000A),
+      onErrorContainer: Color(0xFFFFDAD6),
+      surface: surfaceColor,
+      onSurface: Color(0xFFE6E1EC),
+      surfaceContainerHighest: Color(0xFF1E1A2E),
+      onSurfaceVariant: Color(0xFFCAC4D0),
+      outline: Color(0xFF948E9A),
+      outlineVariant: Color(0xFF494450),
+      shadow: Color(0xFF000000),
+      scrim: Color(0xFF000000),
+      inverseSurface: Color(0xFFE6E1EC),
+      onInverseSurface: Color(0xFF302D38),
+      inversePrimary: Color(0xFF6750A4),
+    );
+
+    final glassSurface = surfaceColor.withValues(alpha: 0.4);
+    final glassSurfaceHigh = scheme.surfaceContainerHighest.withValues(alpha: 0.55);
+    final glassBorder = Colors.white.withValues(alpha: 0.08);
+
+    return _buildTheme(scheme).copyWith(
+      scaffoldBackgroundColor: surfaceColor,
+      appBarTheme: AppBarTheme(
+        centerTitle: false,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: scheme.onSurface,
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        color: glassSurfaceHigh,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cardRadius),
+          side: BorderSide(color: glassBorder, width: 0.5),
+        ),
+        margin: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.xs,
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: glassSurface,
+        surfaceTintColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: glassSurfaceHigh,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: Colors.transparent,
+        indicatorColor: scheme.secondaryContainer.withValues(alpha: 0.6),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.white.withValues(alpha: 0.12),
+        contentTextStyle: TextStyle(color: scheme.onSurface),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.06),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(inputRadius),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(inputRadius),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(inputRadius),
+          borderSide: BorderSide(
+            color: Colors.white.withValues(alpha: 0.3),
+            width: 1.3,
+          ),
+        ),
+      ),
+    );
+  }
+
   // Backwards-compatible aliases for existing call sites.
   static ThemeData light() => lightTheme(null);
   static ThemeData dark() => darkTheme(null);
   static ThemeData androidLight() => lightTheme(null);
   static ThemeData androidDark() => darkTheme(null);
   static ThemeData blackAmoled() => blackAmoledTheme();
+  static ThemeData glassmorphism() => glassmorphismTheme();
 
   static ThemeData _buildTheme(ColorScheme colorScheme) {
     final base = ThemeData(

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -130,10 +131,49 @@ class SpotifyRepository {
 
     for (final raw in items) {
       if (raw is! Map<String, dynamic>) continue;
-      final meta = _trackItemToEnrichment(raw);
+      final meta = _trackItemToEnrichment(raw, queryTitle: t);
       if (meta != null) return meta;
     }
     return null;
+  }
+
+  static String _normalizeForCompare(String s) =>
+      s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), ' ').trim();
+
+  static int _levenshteinDistance(String a, String b) {
+    if (a == b) return 0;
+    if (a.isEmpty) return b.length;
+    if (b.isEmpty) return a.length;
+
+    final rows = a.length + 1;
+    final cols = b.length + 1;
+    final matrix = List.generate(rows, (_) => List<int>.filled(cols, 0));
+    for (var i = 0; i < rows; i++) {
+      matrix[i][0] = i;
+    }
+    for (var j = 0; j < cols; j++) {
+      matrix[0][j] = j;
+    }
+    for (var i = 1; i < rows; i++) {
+      for (var j = 1; j < cols; j++) {
+        final cost = a[i - 1] == b[j - 1] ? 0 : 1;
+        matrix[i][j] = math.min(
+          math.min(matrix[i - 1][j] + 1, matrix[i][j - 1] + 1),
+          matrix[i - 1][j - 1] + cost,
+        );
+      }
+    }
+    return matrix[a.length][b.length];
+  }
+
+  static double _titleMatchConfidence(String queryTitle, String resultTitle) {
+    final a = _normalizeForCompare(queryTitle);
+    final b = _normalizeForCompare(resultTitle);
+    if (a.isEmpty || b.isEmpty) return 0;
+    if (a == b) return 1;
+    final dist = _levenshteinDistance(a, b);
+    final maxLen = math.max(a.length, b.length);
+    return 1.0 - (dist / maxLen);
   }
 
   static String _spotifyQueryToken(String s) {
@@ -147,9 +187,17 @@ class SpotifyRepository {
     return u;
   }
 
-  EnrichedTrackMetadata? _trackItemToEnrichment(Map<String, dynamic> item) {
+  EnrichedTrackMetadata? _trackItemToEnrichment(
+    Map<String, dynamic> item, {
+    required String queryTitle,
+  }) {
     final name = (item['name'] as String?)?.trim() ?? '';
     if (name.isEmpty) return null;
+
+    if (queryTitle.trim().isNotEmpty) {
+      final confidence = _titleMatchConfidence(queryTitle, name);
+      if (confidence < 0.5) return null;
+    }
 
     final artists = item['artists'];
     var artist = '';
@@ -180,12 +228,17 @@ class SpotifyRepository {
       spotifyUrl = (ext['spotify'] as String?)?.trim();
     }
 
+    final confidence = queryTitle.trim().isEmpty
+        ? 0.55
+        : _titleMatchConfidence(queryTitle, name);
+
     return EnrichedTrackMetadata(
       title: name,
       artistName: artist,
       albumTitle: albumTitle,
       artworkUrl: imageUrl,
       spotifyOpenUrl: spotifyUrl,
+      confidence: confidence,
     );
   }
 

@@ -50,7 +50,7 @@ class SettingsScreen extends ConsumerWidget {
                 Text('About this app', style: theme.textTheme.titleMedium),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Music is my personal app project. I am a solo developer, I listen to music every day, and I built this app for myself. I constantly use it, improve it, and ship updates to keep making it better.',
+                  'Timeless Music Player is my personal app project. I am a solo developer, I listen to music every day, and I built this app for myself. I constantly use it, improve it, and ship updates to keep making it better.',
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -300,7 +300,7 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(height: AppSpacing.xxl),
           ListTile(
             leading: const Icon(Icons.info_outline_rounded),
-            title: const Text('About Music'),
+            title: const Text('About Timeless Music Player'),
             subtitle: const Text('Built by TheDevRicardo'),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => _showAboutAppSheet(context, theme),

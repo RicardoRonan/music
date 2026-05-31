@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
+import '../data/io_platform.dart';
+import '../models/enriched_track_metadata.dart';
 import '../models/song.dart';
 
 const _kDevicePlaylistId = 'pl_local_device';
@@ -41,6 +44,48 @@ class LocalSongFactory {
       localAudioUri: sourceUri,
       localParentPath: parentPath,
       genreTag: genreTag,
+    );
+  }
+
+  static Future<Song> fromResolvedUriWithProbedDuration({
+    required String sourceUri,
+    required String displayPathOrName,
+    Duration duration = Duration.zero,
+    String artistName = 'Unknown Artist',
+    String genreTag = 'Local',
+  }) async {
+    var song = fromResolvedUri(
+      sourceUri: sourceUri,
+      displayPathOrName: displayPathOrName,
+      duration: duration,
+      artistName: artistName,
+      genreTag: genreTag,
+    );
+    if (song.duration <= Duration.zero && !kIsWeb) {
+      final uri = song.localAudioUri?.trim();
+      if (uri != null && uri.isNotEmpty) {
+        final probed = await probeAudioDuration(uri);
+        if (probed != null && probed > Duration.zero) {
+          song = song.withDuration(probed);
+        }
+      }
+    }
+    return song;
+  }
+
+  static EnrichedTrackMetadata filenameFallbackMetadata({
+    required String sourceUri,
+    required String displayPathOrName,
+  }) {
+    final song = fromResolvedUri(
+      sourceUri: sourceUri,
+      displayPathOrName: displayPathOrName,
+    );
+    return EnrichedTrackMetadata(
+      title: song.title,
+      artistName: song.artistName,
+      albumTitle: song.albumTitle,
+      confidence: 0.35,
     );
   }
 

@@ -45,14 +45,14 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Welcome to Music', style: theme.textTheme.headlineMedium),
+              Text('Welcome to Timeless Music Player', style: theme.textTheme.headlineMedium),
               const SizedBox(height: AppSpacing.md),
               Text(
                 kIsWeb
-                    ? 'Music is a simple offline music player for your local MP3 and audio files. '
+                    ? 'Timeless is a simple offline music player for your local MP3 and audio files. '
                         'To get started, choose music files from your computer '
                         '(available in Settings and the Library tab after this step).'
-                    : 'Music is a simple offline music player for your local MP3 and audio files. '
+                    : 'Timeless is a simple offline music player for your local MP3 and audio files. '
                         'To get started, scan your device for music or import audio files from storage '
                         '(available in Settings and the Folders tab after this step).',
                 style: theme.textTheme.bodyLarge,

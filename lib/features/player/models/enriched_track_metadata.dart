@@ -9,6 +9,7 @@ class EnrichedTrackMetadata {
     this.recordingMbid,
     this.releaseMbid,
     this.spotifyOpenUrl,
+    this.confidence = 1.0,
   });
 
   final String title;
@@ -23,6 +24,9 @@ class EnrichedTrackMetadata {
 
   /// `https://open.spotify.com/track/...` when resolved via Spotify API.
   final String? spotifyOpenUrl;
+
+  /// Match confidence from 0.0 (filename guess) to 1.0 (exact fingerprint hit).
+  final double confidence;
 
   String? get musicBrainzRecordingUrl => recordingMbid == null
       ? null
@@ -41,6 +45,12 @@ class EnrichedTrackMetadata {
       recordingMbid: previous?.recordingMbid,
       releaseMbid: previous?.releaseMbid,
       spotifyOpenUrl: spotify.spotifyOpenUrl ?? previous?.spotifyOpenUrl,
+      confidence: _maxConfidence(previous?.confidence, spotify.confidence),
     );
+  }
+
+  static double _maxConfidence(double? a, double b) {
+    final left = a ?? 0.0;
+    return left > b ? left : b;
   }
 }

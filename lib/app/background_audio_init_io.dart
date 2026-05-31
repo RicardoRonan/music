@@ -1,8 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio_background/just_audio_background.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../features/player/models/app_theme_preference.dart';
+import '../theme/app_theme.dart';
+
+const _kThemePrefKey = 'app_theme_mode';
+
+/// Notification accent aligned with [AppTheme.seedColor] and stored theme prefs.
+Color notificationColorForThemePreference(AppThemePreference preference) {
+  return switch (preference) {
+    AppThemePreference.light => AppTheme.seedColor,
+    AppThemePreference.dark => AppTheme.seedColor,
+    AppThemePreference.system => AppTheme.seedColor,
+    AppThemePreference.android => AppTheme.seedColor,
+    AppThemePreference.blackAmoled => const Color(0xFF6750A4),
+    AppThemePreference.glassmorphism => const Color(0xFF6750A4),
+  };
+}
+
+Future<Color> _resolveNotificationColor(SharedPreferences? prefs) async {
+  if (prefs == null) return AppTheme.seedColor;
+  final theme = AppThemePreference.fromStorage(prefs.getInt(_kThemePrefKey));
+  return notificationColorForThemePreference(theme);
+}
 
 /// Registers [audio_service] for lock screen / notification / headset controls.
-Future<void> initBackgroundPlayback() async {
+Future<void> initBackgroundPlayback({SharedPreferences? prefs}) async {
+  final resolvedPrefs = prefs ?? await SharedPreferences.getInstance();
+  final notificationColor = await _resolveNotificationColor(resolvedPrefs);
+
   await JustAudioBackground.init(
     androidNotificationChannelId:
         'com.example.flutter_starter.channel.media.v2',
@@ -17,8 +44,6 @@ Future<void> initBackgroundPlayback() async {
     preloadArtwork: true,
     fastForwardInterval: const Duration(seconds: 15),
     rewindInterval: const Duration(seconds: 15),
-    // Uses the app's theme color for notification background.
-    // Artwork is loaded from the song's artworkUrl (cover art).
-    notificationColor: const Color(0xFF121218), // Dark theme color for notification
+    notificationColor: notificationColor,
   );
 }

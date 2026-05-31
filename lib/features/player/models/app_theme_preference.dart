@@ -6,7 +6,8 @@ enum AppThemePreference {
   light(1),
   dark(2),
   android(3),
-  blackAmoled(4);
+  blackAmoled(4),
+  glassmorphism(5);
 
   const AppThemePreference(this.storageValue);
   final int storageValue;
@@ -24,6 +25,7 @@ enum AppThemePreference {
         AppThemePreference.dark => ThemeMode.dark,
         AppThemePreference.android => ThemeMode.system,
         AppThemePreference.blackAmoled => ThemeMode.dark,
+        AppThemePreference.glassmorphism => ThemeMode.dark,
       };
 
   String get label => switch (this) {
@@ -32,5 +34,6 @@ enum AppThemePreference {
         AppThemePreference.dark => 'Dark',
         AppThemePreference.android => 'Android',
         AppThemePreference.blackAmoled => 'Black (AMOLED)',
+        AppThemePreference.glassmorphism => 'Glassmorphism',
       };
 }
