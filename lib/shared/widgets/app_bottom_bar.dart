@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../theme/windows_classic_theme_extension.dart';
+import 'windows_classic_bottom_bar.dart';
+
 class AppBottomBar extends StatelessWidget {
   const AppBottomBar({super.key, required this.selectedIndex});
 
@@ -38,6 +41,10 @@ class AppBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (context.isWindowsClassicTheme) {
+      return WindowsClassicBottomBar(selectedIndex: selectedIndex);
+    }
+
     return SafeArea(
       top: false,
       child: NavigationBar(

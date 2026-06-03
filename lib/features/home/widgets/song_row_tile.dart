@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/utils/duration_format.dart';
 import '../../../core/widgets/artwork_tile.dart';
+import '../../../theme/windows_classic_theme_extension.dart';
 import '../../player/models/song.dart';
 
 String _formatSongDurationLine(Song song) {
@@ -31,6 +32,8 @@ class SongRowTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final classic = context.isWindowsClassicTheme;
+    final wc = classic ? context.winColors : null;
     final tile = ListTile(
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
@@ -39,7 +42,7 @@ class SongRowTile extends StatelessWidget {
       leading: ArtworkTile(
         url: song.artworkUrl,
         size: 52,
-        borderRadius: 12,
+        borderRadius: classic ? 0 : 12,
       ),
       title: Text(
         song.title,
@@ -68,10 +71,10 @@ class SongRowTile extends StatelessWidget {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: AppSpacing.lg),
-        color: theme.colorScheme.primaryContainer,
+        color: classic ? wc!.navy : theme.colorScheme.primaryContainer,
         child: Icon(
           Icons.queue_music_rounded,
-          color: theme.colorScheme.onPrimaryContainer,
+          color: classic ? Colors.white : theme.colorScheme.onPrimaryContainer,
         ),
       ),
       confirmDismiss: (direction) async {

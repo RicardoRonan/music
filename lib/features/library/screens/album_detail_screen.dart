@@ -6,11 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/widgets/artwork_tile.dart';
-import '../../../shared/widgets/app_bottom_bar.dart';
+import '../../../shared/widgets/app_bottom_chrome.dart';
 import '../../home/widgets/song_row_tile.dart';
 import '../../player/providers/app_providers.dart';
 import '../../player/providers/player_notifier.dart';
-import '../../player/widgets/full_screen_mini_player_strip.dart';
 
 class AlbumDetailScreen extends ConsumerWidget {
   const AlbumDetailScreen({super.key, required this.albumId});
@@ -24,7 +23,7 @@ class AlbumDetailScreen extends ConsumerWidget {
     if (album == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Album')),
-        bottomNavigationBar: const _RootBottomChrome(selectedIndex: 0),
+        bottomNavigationBar: const AppBottomChrome(selectedIndex: 0),
         body: const Center(child: Text('Album not found.')),
       );
     }
@@ -50,7 +49,7 @@ class AlbumDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(album.title)),
-      bottomNavigationBar: const _RootBottomChrome(selectedIndex: 0),
+      bottomNavigationBar: const AppBottomChrome(selectedIndex: 0),
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
@@ -137,19 +136,3 @@ class AlbumDetailScreen extends ConsumerWidget {
   }
 }
 
-class _RootBottomChrome extends StatelessWidget {
-  const _RootBottomChrome({required this.selectedIndex});
-
-  final int selectedIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const FullScreenMiniPlayerStrip(),
-        AppBottomBar(selectedIndex: selectedIndex),
-      ],
-    );
-  }
-}

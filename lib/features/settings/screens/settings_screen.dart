@@ -4,12 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_spacing.dart';
-import '../../../shared/widgets/app_bottom_bar.dart';
+import '../../../shared/widgets/app_bottom_chrome.dart';
 import '../../player/models/app_theme_preference.dart';
 import '../../player/providers/app_providers.dart';
 import '../../player/widgets/library_scan_progress_dialog.dart';
 import '../../player/providers/preferences_notifier.dart';
-import '../../player/widgets/full_screen_mini_player_strip.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -101,7 +100,7 @@ class SettingsScreen extends ConsumerWidget {
     final local = ref.watch(localLibraryProvider);
 
     return Scaffold(
-      bottomNavigationBar: const _RootBottomChrome(selectedIndex: 0),
+      bottomNavigationBar: const AppBottomChrome(selectedIndex: 0),
       body: ListView(
         padding: AppSpacing.screenHorizontal.copyWith(top: AppSpacing.xl),
         children: [
@@ -313,23 +312,6 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.md),
         ],
       ),
-    );
-  }
-}
-
-class _RootBottomChrome extends StatelessWidget {
-  const _RootBottomChrome({required this.selectedIndex});
-
-  final int selectedIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const FullScreenMiniPlayerStrip(),
-        AppBottomBar(selectedIndex: selectedIndex),
-      ],
     );
   }
 }

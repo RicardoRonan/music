@@ -4,10 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/utils/duration_format.dart';
 import '../../../core/widgets/artwork_tile.dart';
-import '../../../shared/widgets/app_bottom_bar.dart';
+import '../../../shared/widgets/app_bottom_chrome.dart';
 import '../models/song.dart';
 import '../providers/player_notifier.dart';
-import '../widgets/full_screen_mini_player_strip.dart';
 
 String _queueRowDuration(Song s) {
   if (s.isLocalFile && s.duration <= const Duration(seconds: 2)) {
@@ -32,7 +31,7 @@ class QueueScreen extends ConsumerWidget {
     if (queue.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: const Text('Queue')),
-        bottomNavigationBar: const _RootBottomChrome(selectedIndex: 0),
+        bottomNavigationBar: const AppBottomChrome(selectedIndex: 0),
         body: Center(
           child: Text(
             'Play a song or playlist to see the queue.',
@@ -94,7 +93,7 @@ class QueueScreen extends ConsumerWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const _RootBottomChrome(selectedIndex: 0),
+      bottomNavigationBar: const AppBottomChrome(selectedIndex: 0),
       body: ListView.separated(
         padding: AppSpacing.screenHorizontal,
         itemCount: fromHere.length,
@@ -186,19 +185,3 @@ class QueueScreen extends ConsumerWidget {
   }
 }
 
-class _RootBottomChrome extends StatelessWidget {
-  const _RootBottomChrome({required this.selectedIndex});
-
-  final int selectedIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const FullScreenMiniPlayerStrip(),
-        AppBottomBar(selectedIndex: selectedIndex),
-      ],
-    );
-  }
-}

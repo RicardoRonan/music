@@ -55,6 +55,31 @@ class _MusicAppState extends ConsumerState<MusicApp> {
     final prefs = ref.watch(preferencesNotifierProvider);
     final t = prefs.themePreference;
 
+    if (t == AppThemePreference.windowsClassic ||
+        t == AppThemePreference.windowsClassicDark) {
+      final dark = t == AppThemePreference.windowsClassicDark;
+      final winTheme =
+          dark ? AppTheme.windowsClassicDarkTheme() : AppTheme.windowsClassicTheme();
+      return MaterialApp.router(
+        title: 'Timeless Music Player: Offline MP3 Player',
+        debugShowCheckedModeBanner: false,
+        theme: winTheme,
+        themeMode: dark ? ThemeMode.dark : ThemeMode.light,
+        themeAnimationDuration: Duration.zero,
+        routerConfig: router,
+        builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle.light.copyWith(
+            statusBarColor: const Color(0xFF000080),
+            systemNavigationBarColor: dark
+                ? const Color(0xFF4A4A4A)
+                : const Color(0xFFC0C0C0),
+            systemNavigationBarIconBrightness: Brightness.light,
+          ),
+          child: child ?? const SizedBox.shrink(),
+        ),
+      );
+    }
+
     return DynamicColorBuilder(
       builder: (lightDynamic, darkDynamic) {
         final light = AppTheme.lightTheme(lightDynamic);
@@ -70,10 +95,15 @@ class _MusicAppState extends ConsumerState<MusicApp> {
           _ => ThemeMode.system,
         };
 
+        final appTheme = switch (t) {
+          AppThemePreference.glassmorphism => dark,
+          _ => light,
+        };
+
         return MaterialApp.router(
           title: 'Timeless Music Player: Offline MP3 Player',
           debugShowCheckedModeBanner: false,
-          theme: t == AppThemePreference.glassmorphism ? dark : light,
+          theme: appTheme,
           darkTheme: dark,
           themeMode: themeMode,
           themeAnimationCurve: Curves.easeOutCubic,

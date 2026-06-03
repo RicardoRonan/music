@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../theme/windows_classic_theme_extension.dart';
 import 'app_loader.dart';
 import 'artwork_tile_local_stub.dart'
     if (dart.library.io) 'artwork_tile_local_io.dart' as artwork_local;
@@ -24,7 +25,8 @@ class ArtworkTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final r = BorderRadius.circular(borderRadius);
+    final radius = context.isWindowsClassicTheme ? 0.0 : borderRadius;
+    final r = BorderRadius.circular(radius);
     final fallback = ClipRRect(
       borderRadius: r,
       child: SvgPicture.asset(

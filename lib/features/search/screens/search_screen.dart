@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_spacing.dart';
+import '../../../theme/windows_classic_theme_extension.dart';
 import '../../home/widgets/song_row_tile.dart';
 import '../../player/data/music_catalog.dart';
 import '../../player/models/album.dart';
@@ -127,11 +128,32 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           child: Row(
             children: SearchFilter.values.map((f) {
               final selected = _filter == f;
+              final classic = context.isWindowsClassicTheme;
+              final wc = classic ? context.winColors : null;
               return Padding(
                 padding: const EdgeInsets.only(right: AppSpacing.xs),
                 child: FilterChip(
-                  label: Text(_label(f)),
+                  label: Text(
+                    _label(f),
+                    style: TextStyle(
+                      fontSize: classic ? 11 : null,
+                      fontFamily: classic ? 'Tahoma' : null,
+                      color: classic
+                          ? (selected ? Colors.white : wc!.onSurface)
+                          : null,
+                    ),
+                  ),
                   selected: selected,
+                  checkmarkColor: classic ? Colors.white : null,
+                  selectedColor: classic ? wc!.navy : null,
+                  backgroundColor: classic ? wc!.chrome : null,
+                  side: classic ? wc!.borderSide : null,
+                  shape: classic
+                      ? const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero,
+                        )
+                      : null,
+                  showCheckmark: classic,
                   onSelected: (_) => setState(() => _filter = f),
                 ),
               );

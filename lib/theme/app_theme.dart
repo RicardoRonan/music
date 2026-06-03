@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/constants/app_spacing.dart';
+import 'windows_classic_theme_data.dart';
 
 class AppTheme {
   AppTheme._();
@@ -73,6 +74,12 @@ class AppTheme {
     );
     return _buildTheme(scheme).copyWith(scaffoldBackgroundColor: Colors.black);
   }
+
+  static ThemeData windowsClassicTheme({bool dark = false}) =>
+      WindowsClassicThemeData.build(dark: dark);
+
+  static ThemeData windowsClassicDarkTheme() =>
+      WindowsClassicThemeData.build(dark: true);
 
   static ThemeData glassmorphismTheme() {
     const surfaceColor = Color(0xFF0D0B14);
@@ -188,6 +195,8 @@ class AppTheme {
   static ThemeData androidDark() => darkTheme(null);
   static ThemeData blackAmoled() => blackAmoledTheme();
   static ThemeData glassmorphism() => glassmorphismTheme();
+  static ThemeData windowsClassic() => windowsClassicTheme();
+  static ThemeData windowsClassicDark() => windowsClassicDarkTheme();
 
   static ThemeData _buildTheme(ColorScheme colorScheme) {
     final base = ThemeData(

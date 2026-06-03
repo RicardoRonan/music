@@ -18,6 +18,7 @@ import '../features/search/screens/search_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/player/providers/preferences_notifier.dart';
+import '../theme/windows_classic_theme_extension.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -36,6 +37,9 @@ CustomTransitionPage<void> _fadeSlidePage(
     reverseTransitionDuration: const Duration(milliseconds: 220),
     child: pageChild,
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      if (context.isWindowsClassicTheme) {
+        return child;
+      }
       final curved = CurvedAnimation(
         parent: animation,
         curve: Curves.easeOutCubic,

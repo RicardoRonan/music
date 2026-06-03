@@ -16,6 +16,8 @@ Color notificationColorForThemePreference(AppThemePreference preference) {
     AppThemePreference.android => AppTheme.seedColor,
     AppThemePreference.blackAmoled => const Color(0xFF6750A4),
     AppThemePreference.glassmorphism => const Color(0xFF6750A4),
+    AppThemePreference.windowsClassic => const Color(0xFF000080),
+    AppThemePreference.windowsClassicDark => const Color(0xFF000080),
   };
 }
 

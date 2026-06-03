@@ -9,8 +9,7 @@ import '../../player/data/music_catalog.dart';
 import '../../player/models/song.dart';
 import '../../player/providers/app_providers.dart';
 import '../../player/providers/player_notifier.dart';
-import '../../player/widgets/full_screen_mini_player_strip.dart';
-import '../../../shared/widgets/app_bottom_bar.dart';
+import '../../../shared/widgets/app_bottom_chrome.dart';
 
 /// Route [extra] — folder browsing from Library.
 class LibraryFolderArgs {
@@ -58,7 +57,7 @@ class _LibraryFolderScreenState extends ConsumerState<LibraryFolderScreen> {
       appBar: AppBar(
         title: Text(MusicCatalog.folderDisplayTitle(args.folderKey)),
       ),
-      bottomNavigationBar: const _RootBottomChrome(selectedIndex: 0),
+      bottomNavigationBar: const AppBottomChrome(selectedIndex: 0),
       body: ListView(
         padding: AppSpacing.screenHorizontal.copyWith(top: AppSpacing.sm),
         children: [
@@ -88,19 +87,3 @@ class _LibraryFolderScreenState extends ConsumerState<LibraryFolderScreen> {
   }
 }
 
-class _RootBottomChrome extends StatelessWidget {
-  const _RootBottomChrome({required this.selectedIndex});
-
-  final int selectedIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const FullScreenMiniPlayerStrip(),
-        AppBottomBar(selectedIndex: selectedIndex),
-      ],
-    );
-  }
-}

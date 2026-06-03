@@ -20,6 +20,8 @@ import '../widgets/track_swipe_surface.dart';
 import '../providers/preferences_notifier.dart';
 import '../providers/track_metadata_providers.dart';
 import '../widgets/song_streaming_links.dart';
+import '../widgets/windows_classic_now_playing.dart';
+import '../../../theme/windows_classic_theme_extension.dart';
 
 class NowPlayingScreen extends ConsumerWidget {
   const NowPlayingScreen({super.key, this.showBackButton = true});
@@ -58,6 +60,7 @@ class NowPlayingScreen extends ConsumerWidget {
     final displayArtwork = enriched?.artworkUrl ?? song.artworkUrl;
 
     final musicBrainzRecordingUrl = enriched?.musicBrainzRecordingUrl;
+    final isWindowsClassic = context.isWindowsClassicTheme;
     final isDark = theme.brightness == Brightness.dark;
     final transportCircleFill = isDark
         ? theme.colorScheme.surfaceContainerHigh
@@ -65,6 +68,37 @@ class NowPlayingScreen extends ConsumerWidget {
     final transportCircleOnFill = isDark
         ? theme.colorScheme.onSurface
         : theme.colorScheme.onPrimary;
+
+    if (isWindowsClassic) {
+      return Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: WindowsClassicNowPlayingBody(
+          song: song,
+          displayTitle: displayTitle,
+          displayArtist: displayArtist,
+          showBackButton: showBackButton,
+          onSwipeDownPop: () {
+            if (context.mounted) context.pop();
+          },
+          onShowDetails: () => _showClassicTrackMenu(
+            context,
+            theme,
+            song: song,
+            displayArtist: displayArtist,
+            displayAlbum: displayAlbum,
+            searchTitle: enriched?.title,
+            searchArtist: enriched?.artistName,
+          ),
+          onShowMusicBrainz: musicBrainzRecordingUrl != null
+              ? () => _showMusicBrainzInfoSheet(
+                    context,
+                    theme,
+                    musicBrainzRecordingUrl,
+                  )
+              : null,
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -568,6 +602,41 @@ class _NowPlayingTransportRow extends ConsumerWidget {
       ),
     );
   }
+}
+
+Future<void> _showClassicTrackMenu(
+  BuildContext context,
+  ThemeData theme, {
+  required Song song,
+  required String displayArtist,
+  required String displayAlbum,
+  String? searchTitle,
+  String? searchArtist,
+}) async {
+  final box = context.findRenderObject() as RenderBox?;
+  if (box == null || !context.mounted) return;
+  final offset = box.localToGlobal(Offset.zero);
+  final size = box.size;
+  await showMenu<void>(
+    context: context,
+    color: context.winColors.chrome,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+    position: RelativeRect.fromLTRB(
+      offset.dx + size.width - 200,
+      offset.dy + 40,
+      offset.dx + size.width,
+      offset.dy + size.height,
+    ),
+    items: nowPlayingTrackDetailsMenuEntries(
+      context: context,
+      theme: theme,
+      song: song,
+      displayArtist: displayArtist,
+      displayAlbum: displayAlbum,
+      searchTitle: searchTitle,
+      searchArtist: searchArtist,
+    ),
+  );
 }
 
 Future<void> _showMusicBrainzInfoSheet(

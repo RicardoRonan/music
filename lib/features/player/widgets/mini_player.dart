@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/widgets/audio_spectrum_visualizer.dart';
+import '../../../theme/windows_classic_theme_extension.dart';
 import '../../../core/utils/track_title_sanitize.dart';
 import '../../../core/widgets/artwork_tile.dart';
 import '../models/song.dart';
@@ -41,12 +43,19 @@ class MiniPlayer extends ConsumerWidget {
     final dividerColor =
         theme.dividerTheme.color ?? theme.colorScheme.outlineVariant;
     final isDark = theme.brightness == Brightness.dark;
+    final isWindowsClassic = context.isWindowsClassicTheme;
+    final wc = isWindowsClassic ? context.winColors : null;
 
     return Material(
-      color: theme.colorScheme.surface,
+      color: isWindowsClassic ? wc!.chrome : theme.colorScheme.surface,
       child: Container(
         decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: dividerColor)),
+          border: Border(
+            top: BorderSide(
+              color: isWindowsClassic ? wc!.shadow : dividerColor,
+              width: isWindowsClassic ? 2 : 1,
+            ),
+          ),
         ),
         constraints: const BoxConstraints(minHeight: 72),
         padding: const EdgeInsets.symmetric(
@@ -64,11 +73,29 @@ class MiniPlayer extends ConsumerWidget {
                   onTap: () => context.push('/now-playing'),
                   child: Row(
                     children: [
-                      ArtworkTile(
-                        url: displayArtwork,
-                        size: 56,
-                        borderRadius: AppTheme.cardRadius * 0.65,
-                      ),
+                      if (isWindowsClassic)
+                        SizedBox(
+                          width: 96,
+                          height: 40,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              border: wc!.insetBorder,
+                            ),
+                            child: AudioSpectrumVisualizer(
+                              isPlaying: isPlaying,
+                              height: 40,
+                              barCount: 24,
+                              showPeakMeters: false,
+                            ),
+                          ),
+                        )
+                      else
+                        ArtworkTile(
+                          url: displayArtwork,
+                          size: 56,
+                          borderRadius: AppTheme.cardRadius * 0.65,
+                        ),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Column(
@@ -103,24 +130,33 @@ class MiniPlayer extends ConsumerWidget {
             Semantics(
               button: true,
               label: isPlaying ? 'Pause playback' : 'Start playback',
-              child: IconButton.filledTonal(
-                style: IconButton.styleFrom(
-                  padding: const EdgeInsets.all(14),
-                  backgroundColor: isDark
-                      ? theme.colorScheme.surfaceContainerHigh
-                      : null,
-                  foregroundColor:
-                      isDark ? theme.colorScheme.onSurface : null,
-                ),
-                tooltip: isPlaying ? 'Pause' : 'Play',
-                onPressed: () => notifier.togglePlay(),
-                icon: Icon(
-                  isPlaying
-                      ? Icons.pause_rounded
-                      : Icons.play_arrow_rounded,
-                  size: 28,
-                ),
-              ),
+              child: isWindowsClassic
+                  ? IconButton(
+                      tooltip: isPlaying ? 'Pause' : 'Play',
+                      onPressed: () => notifier.togglePlay(),
+                      icon: Icon(
+                        isPlaying ? Icons.pause : Icons.play_arrow,
+                        size: 22,
+                      ),
+                    )
+                  : IconButton.filledTonal(
+                      style: IconButton.styleFrom(
+                        padding: const EdgeInsets.all(14),
+                        backgroundColor: isDark
+                            ? theme.colorScheme.surfaceContainerHigh
+                            : null,
+                        foregroundColor:
+                            isDark ? theme.colorScheme.onSurface : null,
+                      ),
+                      tooltip: isPlaying ? 'Pause' : 'Play',
+                      onPressed: () => notifier.togglePlay(),
+                      icon: Icon(
+                        isPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        size: 28,
+                      ),
+                    ),
             ),
           ],
         ),
